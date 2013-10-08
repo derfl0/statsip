@@ -28,7 +28,6 @@ class StatsIPTemplate extends SimpleORMap {
 
     public function __construct($id = null) {
         parent::__construct($id);
-        $this->stats = StatsIPTemplateStats::findBySQL("template_id = ?", array($this->id));
     }
 
     public function activated($id) {
@@ -38,6 +37,13 @@ class StatsIPTemplate extends SimpleORMap {
             }
         }
         return false;
+    }
+    
+    private function getStats() {
+        if (!$this->stats) {
+            $this->stats = StatsIPTemplateStats::findBySQL("template_id = ?", array($this->id));
+        }
+        return $this->stats;
     }
 
     private function loadEntries() {
@@ -95,8 +101,8 @@ class StatsIPTemplate extends SimpleORMap {
 
     private function collectStats() {
         $this->loadEntries();
-        if ($this->stats) {
-            foreach ($this->stats as $statistic) {
+        if ($this->getStats()) {
+            foreach ($this->getStats() as $statistic) {
                 try {
                     $newEntries = $statistic->getData($this->getIDs());
                     $this->accumulateEntities($newEntries);

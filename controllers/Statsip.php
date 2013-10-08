@@ -8,77 +8,28 @@ class StatsipController extends StudipController {
 
     public function index_action() {
 
-        $this->templates = StatsIPTemplate::findBySQL("1=1");
+        $this->prepareTemplateSelection();
 
         if (!$this->templates) {
             $this->redirect('statsip/create');
             return 0;
         }
 
-        if (Request::get('template')) {
-            foreach ($this->templates as $template) {
-                if ($template->id == Request::get('template')) {
-                    $this->selected = $template;
-                }
-            }
-        }
-
-        if (Request::get('template')) {
-            $template = new StatsIPTemplate(Request::get('template'));
-            if ($template) {
-                $this->template = $template;
-                $this->head = $template->getHead();
-                $this->stats = $template->getEntities();
-                $this->google = $template->googleAPIJavascriptDatatable();
-            }
+        if (!$this->selected) {
+            $this->selected = $this->templates[0];
         }
     }
 
     public function create_action() {
 
-
-
-        $this->types = array(
-            'user' => _('Benutzer'),
-            'sem' => _('Veranstaltung'),
-            'inst' => _('Einrichtungen')
-        );
-
-        $this->templates = $this->getAllTemplates();
-        $this->selected = $this->getSelectedTemplate($this->templates);
+        $this->loadSelects();
+        $this->updateFromRequest();
+        $this->deleteFromRequest();
+        $this->prepareTemplateSelection();
         $this->pushNewTemplate($this->templates);
+        $this->loadElements();
 
-        if (Request::submitted('save')) {
-            if (Request::get('template') == '') {
-                $edit = new StatsIPTemplate();
-            } else {
-                $edit = new StatsIPTemplate(Request::get('template'));
-            }
-            $edit->name = Request::get('name') ? : _('Unbenannt');
-            $edit->user_id = $GLOBALS['user']->id;
-            $edit->sql = Request::get('sql') ? : "";
-            $edit->type = Request::get('type') ? : "user";
-            $edit->table = Request::get('table') ? 1 : 0;
-            $edit->graphic = Request::get('graphic') ? : "";
-            $edit->height = Request::get('height') ? : 300;
-            $edit->width = Request::get('width') ? : 0;
-
-            $edit->store();
-            if (!$edit->isNew()) {
-                StatsIPTemplateStats::deleteBySQL('template_id = ?', array($edit->id));
-            }
-            foreach (Request::getArray('elements') as $element) {
-                $new = new StatsIPTemplateStats(array($edit->id, $element));
-                $new->store();
-            }
-        }
-        if (Request::submitted('delete')) {
-            StatsIPTemplate::deleteBySQL('template_id = ?', array(Request::get('template')));
-            StatsIPTemplateStats::deleteBySQL('template_id = ?', array(Request::get('template')));
-        }
-
-
-        $this->elements = StatsIPStatistic::findByType($this->selected ? $this->selected->type : "user");
+        // Shitty code to detect sql fails. Since sql code wont be a valid option in retail this will be removed some time
         if ($this->selected) {
             try {
                 $db = DBManager::get();
@@ -87,19 +38,11 @@ class StatsipController extends StudipController {
                 $this->sql = _('SQL PROBLEM! <pre>' . $exc . '</pre><br>');
             }
         }
-
-        $this->graphics = array('ColumnChart' => _('Balken'),
-            'AreaChart' => _('Flächen'),
-            'SteppedAreaChart' => _('Stufenflächen'),
-            'BarChart' => _('Streifen'),
-            'CandlestickChart' => _('Kerzen'),
-            'ComboChart' => _('Combo'),
-            'Gauge' => _('Messuhr'),
-            'LineChart' => _('Linien'),
-            'PieChart' => _('Kuchen'),
-            'ScatterChart' => _('Streuung'),
-            'BubbleChart' => _('Blasen'));
     }
+
+    /*
+     * HELPER FUNCTIONS
+     */
 
     // customized #url_for for plugins
     function url_for($to) {
@@ -118,6 +61,11 @@ class StatsipController extends StudipController {
         return PluginEngine::getURL($this->dispatcher->plugin, $params, join("/", $args));
     }
 
+    private function prepareTemplateSelection() {
+        $this->templates = $this->getAllTemplates();
+        $this->selected = $this->getSelectedTemplate($this->templates);
+    }
+
     private function getAllTemplates() {
         return StatsIPTemplate::findBySQL("1=1");
     }
@@ -131,10 +79,71 @@ class StatsipController extends StudipController {
 
     private function getSelectedTemplate() {
         foreach ($this->templates as $template) {
-            if ($template->id == $edit->id || $template->id == Request::get('template')) {
+            if ($template->id == $this->newId || $template->id == Request::get('template')) {
                 return $template;
             }
         }
+    }
+
+    private function updateFromRequest() {
+        if (Request::submitted('save')) {
+            if (Request::get('template') == '') {
+                $edit = new StatsIPTemplate();
+            } else {
+                $edit = new StatsIPTemplate(Request::get('template'));
+            }
+            $this->setTemplateInfoByRequest($edit);
+            $edit->store();
+            if (!$edit->isNew()) {
+                StatsIPTemplateStats::deleteBySQL('template_id = ?', array($edit->id));
+            }
+            foreach (Request::getArray('elements') as $element) {
+                $new = new StatsIPTemplateStats(array($edit->id, $element));
+                $new->store();
+            }
+            $this->selected = $edit;
+        }
+    }
+
+    private function deleteFromRequest() {
+        if (Request::submitted('delete')) {
+            StatsIPTemplate::deleteBySQL('template_id = ?', array(Request::get('template')));
+            StatsIPTemplateStats::deleteBySQL('template_id = ?', array(Request::get('template')));
+        }
+    }
+
+    private function loadElements() {
+        $this->elements = StatsIPStatistic::findByType($this->selected ? $this->selected->type : "user");
+    }
+
+    private function loadSelects() {
+        $this->types = array(
+            'user' => _('Benutzer'),
+            'sem' => _('Veranstaltung'),
+            'inst' => _('Einrichtungen')
+        );
+        $this->graphics = array('ColumnChart' => _('Balken'),
+            'AreaChart' => _('Flächen'),
+            'SteppedAreaChart' => _('Stufenflächen'),
+            'BarChart' => _('Streifen'),
+            'CandlestickChart' => _('Kerzen'),
+            'ComboChart' => _('Combo'),
+            'Gauge' => _('Messuhr'),
+            'LineChart' => _('Linien'),
+            'PieChart' => _('Kuchen'),
+            'ScatterChart' => _('Streuung'),
+            'BubbleChart' => _('Blasen'));
+    }
+
+    private function setTemplateInfoByRequest(&$template) {
+        $template->name = Request::get('name') ? : _('Unbenannt');
+        $template->user_id = $GLOBALS['user']->id;
+        $template->sql = Request::get('sql') ? : "";
+        $template->type = Request::get('type') ? : "user";
+        $template->table = Request::get('table') ? 1 : 0;
+        $template->graphic = Request::get('graphic') ? : "";
+        $template->height = Request::get('height') ? : 300;
+        $template->width = Request::get('width') ? : 0;
     }
 
 }
