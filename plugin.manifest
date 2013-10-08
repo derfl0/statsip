@@ -1,0 +1,9 @@
+pluginname=Stats.IP
+pluginclassname=StatsipPlugin
+origin=intelec
+version=0.1b
+description=Automatische Datenverarbeitung und Diagramm Erstellung
+studipMinVersion=2.0
+dbscheme=install.sql
+uninstalldbscheme=uninstall.sql
+pluginclassname=StatsipdefaultPlugin
