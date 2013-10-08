@@ -18,16 +18,22 @@ class StatsipController extends StudipController {
         if (!$this->selected) {
             $this->selected = $this->templates[0];
         }
+
+        $this->checkViewRights();
     }
 
     public function create_action() {
+        $GLOBALS['perm']->check('root');
 
         $this->loadSelects();
         $this->updateFromRequest();
         $this->deleteFromRequest();
         $this->prepareTemplateSelection();
         $this->pushNewTemplate($this->templates);
+        $this->addFromRequest();
+        $this->removeFromRequest();
         $this->loadElements();
+        $this->createShareQuicksearch();
 
         // Shitty code to detect sql fails. Since sql code wont be a valid option in retail this will be removed some time
         if ($this->selected) {
@@ -61,13 +67,32 @@ class StatsipController extends StudipController {
         return PluginEngine::getURL($this->dispatcher->plugin, $params, join("/", $args));
     }
 
+    private function checkViewRights() {
+        if ($GLOBALS['perm']->have_perm('root')) {
+            return true;
+        }
+        if (Navigation::hasItem("/profile") && StatsIPShare::findBySQL('template_id = ? AND range_id = ?', array($this->selected->id, $GLOBALS['user']->id))) {
+            return true;
+        }
+        throw new AccessDeniedException(_('Statistik nicht freigegeben'));
+    }
+
     private function prepareTemplateSelection() {
         $this->templates = $this->getAllTemplates();
         $this->selected = $this->getSelectedTemplate($this->templates);
     }
 
     private function getAllTemplates() {
-        return StatsIPTemplate::findBySQL("1=1");
+        if ($GLOBALS['perm']->have_perm('root')) {
+            return StatsIPTemplate::findBySQL("1=1");
+        }
+        if (Navigation::hasItem("/profile")) {
+            $shares = StatsIPShare::findByRange_id($GLOBALS['user']->id);
+            foreach ($shares as $share) {
+                $pks[] = $share->template_id;
+            }
+            return StatsIPTemplate::findMany($pks);
+        }
     }
 
     private function pushNewTemplate(&$templates) {
@@ -86,7 +111,7 @@ class StatsipController extends StudipController {
     }
 
     private function updateFromRequest() {
-        if (Request::submitted('save')) {
+        if (Request::submitted('save') || Request::submitted('add')) {
             if (Request::get('template') == '') {
                 $edit = new StatsIPTemplate();
             } else {
@@ -109,6 +134,23 @@ class StatsipController extends StudipController {
         if (Request::submitted('delete')) {
             StatsIPTemplate::deleteBySQL('template_id = ?', array(Request::get('template')));
             StatsIPTemplateStats::deleteBySQL('template_id = ?', array(Request::get('template')));
+        }
+    }
+
+    private function addFromRequest() {
+        if (Request::submitted('add') && Request::get('range_id')) {
+            $new = new StatsIPShare();
+            $new->name = Request::get('range_id_parameter');
+            $new->range_id = Request::get('range_id');
+            $new->template_id = $this->selected->id;
+            $new->store();
+        }
+    }
+
+    private function removeFromRequest() {
+        if (Request::submitted('remove')) {
+            $del = new StatsIPShare(Request::get('remove'));
+            $del->delete();
         }
     }
 
@@ -144,6 +186,23 @@ class StatsipController extends StudipController {
         $template->graphic = Request::get('graphic') ? : "";
         $template->height = Request::get('height') ? : 300;
         $template->width = Request::get('width') ? : 0;
+    }
+
+    private function createShareQuicksearch() {
+        $suche = new SQLSearch("SELECT institut_id as range_id, CONCAT('" . _('Einrichtung') . ": ', Name)
+            FROM institute
+            WHERE name LIKE :input
+            UNION
+            SELECT user_id as range_id, CONCAT('" . _('Benutzer') . ": ', Vorname, ' ', Nachname )
+            FROM auth_user_md5
+            WHERE Nachname LIKE :input OR Vorname LIKE :input OR CONCAT(Vorname,' ', Nachname) LIKE :input OR CONCAT(Nachname,' ',Vorname) LIKE :input 
+            UNION
+            SELECT seminar_id as range_id, CONCAT('" . _('Veranstaltung') . ": ', Name)
+            FROM seminare
+            WHERE name LIKE :input", _("Freigabe"), "range_id");
+        $this->shareQS = QuickSearch::get("range_id", $suche)
+                ->setInputStyle("width: 240px")
+                ->render();
     }
 
 }

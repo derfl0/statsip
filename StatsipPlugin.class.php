@@ -20,22 +20,31 @@ class StatsipPlugin extends StudIPPlugin implements HomepagePlugin, StandardPlug
         $navigation->setURL(PluginEngine::GetURL($this, array(), 'statsip'));
         $navigation->setImage(Assets::image_path('icons/16/white/stat.png'));
         $navigation->setActiveImage(Assets::image_path('icons/16/black/stat.png'));
-        Navigation::addItem('tools/statsip', $navigation);
+
+        if ($GLOBALS['perm']->have_perm('root')) {
+            Navigation::addItem('tools/statsip', $navigation);
+        } else if (Navigation::hasItem("/profile") &&
+                $this->isActivated($GLOBALS['user']->id, 'user') && StatsIPShare::findBySQL("range_id = ? LIMIT 1", array($GLOBALS['user']->id))) {
+            Navigation::addItem("/profile/statsip", $navigation);
+        }
     }
 
     public function initialize() {
-        $loadedTemplate = Request::get('template');
-        
-        $subNavigation = new AutoNavigation(_('Anzeigen'));
-        $subNavigation->setURL(PluginEngine::GetURL($this, array(), 'statsip'), array('template' => $loadedTemplate));
-        Navigation::addItem('tools/statsip/show', $subNavigation);
 
-        $subNavigation = new AutoNavigation(_('Erstellen / Bearbeiten'));
-        $subNavigation->setURL(PluginEngine::GetURL($this, array(), 'statsip/create'), array('template' => $loadedTemplate));
-        Navigation::addItem('tools/statsip/create', $subNavigation);
+        if ($GLOBALS['perm']->have_perm('root')) {
+            $loadedTemplate = Request::get('template');
 
-        PageLayout::addStylesheet($this->getPluginURL() . '/assets/style.css');
-        PageLayout::addScript($this->getPluginURL() . '/assets/application.js');
+            $subNavigation = new AutoNavigation(_('Anzeigen'));
+            $subNavigation->setURL(PluginEngine::GetURL($this, array(), 'statsip'), array('template' => $loadedTemplate));
+            Navigation::addItem('tools/statsip/show', $subNavigation);
+
+            $subNavigation = new AutoNavigation(_('Erstellen / Bearbeiten'));
+            $subNavigation->setURL(PluginEngine::GetURL($this, array(), 'statsip/create'), array('template' => $loadedTemplate));
+            Navigation::addItem('tools/statsip/create', $subNavigation);
+
+            PageLayout::addStylesheet($this->getPluginURL() . '/assets/style.css');
+            PageLayout::addScript($this->getPluginURL() . '/assets/application.js');
+        }
     }
 
     public function getHomepageTemplate($user_id) {
@@ -76,4 +85,5 @@ class StatsipPlugin extends StudIPPlugin implements HomepagePlugin, StandardPlug
                     });
         }
     }
-    }
+
+}

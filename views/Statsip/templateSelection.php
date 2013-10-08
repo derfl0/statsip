@@ -1,3 +1,4 @@
+<? if(count($templates) > 1): ?>
 <form class='studip_form'>
     <label><strong><?= _('Statistikauswahl') ?></strong>
         <select name="template" onChange="this.form.submit()">
@@ -8,3 +9,4 @@
     </label><br>
     <? \Studip\Button::create(_('Laden')) ?>
 </form>
+<? endif; ?>

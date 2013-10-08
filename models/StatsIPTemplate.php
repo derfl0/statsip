@@ -25,10 +25,11 @@ class StatsIPTemplate extends SimpleORMap {
     private $entities;
     private $columns = array();
     private $stats;
-
-    public function __construct($id = null) {
-        parent::__construct($id);
-    }
+    protected $has_many = array('shares' => array(
+            'class_name' => 'StatsIPShare',
+            'func' => 'findByTemplate_id',
+            'on_delete' => 'delete',
+            'on_store' => 'store'));
 
     public function activated($id) {
         foreach (StatsIPTemplateStats::findBySQL("template_id = ?", array($this->id)) as $stat) {
@@ -38,7 +39,7 @@ class StatsIPTemplate extends SimpleORMap {
         }
         return false;
     }
-    
+
     private function getStats() {
         if (!$this->stats) {
             $this->stats = StatsIPTemplateStats::findBySQL("template_id = ?", array($this->id));

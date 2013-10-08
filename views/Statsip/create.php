@@ -1,9 +1,9 @@
 <?= $this->render_partial('statsip/templateSelection') ?>
 
 <form class='studip_form' method="POST">
-    
+
     <input  type="hidden" name="template" value="<?= htmlReady($selected->id) ?>">
-    
+
     <fieldset>
         <legend><?= _('Template') ?></legend>
         <label><?= _('Name') ?>
@@ -35,6 +35,18 @@
     </fieldset>
 
     <fieldset>
+        <legend><?= _('Freigabe') ?></legend>
+        <small><?= _('Mögliche Freigaben: Einrichtungen (Mitarbeiter), Veranstaltungen (Dozenten und Tutoren), Benutzer') ?></small>
+        <?= $shareQS ?><?= Studip\Button::create(_('Hinzufügen'), 'add') ?>
+        <? if ($selected): ?>
+            <br>
+            <? foreach ($selected->shares as $share): ?>
+                <?= htmlReady($share->name) ?><a href="<?= URLHelper::getLink('', array('template' => $selected->id, 'remove' => $share->id)); ?>"><?= Assets::img('icons/16/blue/trash.png') ?></a><br>
+            <? endforeach; ?>
+        <? endif; ?>
+    </fieldset>
+
+    <fieldset>
         <legend><?= _('Visualisierung') ?></legend>
         <label>
             <input type="checkbox" name="table" value="1" <?= $selected->table || !$selected ? "CHECKED" : "" ?>>
@@ -55,10 +67,6 @@
         <label><?= _('Höhe') ?>
             <input  type="text" name="height" placeholder="300" value="<?= htmlReady($selected->height) ?>">
         </label>
-    </fieldset>
-
-    <fieldset>
-        <legend><?= _('Freigabe') ?></legend>
     </fieldset>
 
     <?= \Studip\Button::create(_('Speichern'), 'save'); ?>
