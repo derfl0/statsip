@@ -5,27 +5,27 @@
     <div id="chart_div" width="100%"></div>
 
     <? if ($selected->table): ?>
-        <table class="default">
-            <caption><?= htmlReady($selected->name) ?></caption>
-            <thead
-                <tr>
-                        <? foreach ($selected->getHead() as $entry): ?>
-                        <th>
-                            <?= $entry ?>
-                        </th>
-                    <? endforeach; ?>
-                </tr>
-            </thead>
-            <tbody>
-                <? foreach ($selected->getEntities() as $stat): ?>
-                    <tr>            
-                        <? foreach ($selected->getHead() as $key): ?>
-                            <td><?= $stat[$key] ?></td>
+ <table class="default zebra nohover datatable">
+                <caption><?= htmlReady($selected->name) ?></caption>
+                <thead>
+                    <tr>
+                            <? foreach ($selected->getHead() as $entry): ?>
+                            <th nowrap>
+                                <?= $entry ?>
+                            </th>
                         <? endforeach; ?>
                     </tr>
-                <? endforeach; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <? foreach ($selected->getEntities() as $stat): ?>
+                        <tr >            
+                            <? foreach ($selected->getHead() as $key): ?>
+                                <td nowrap><?= $stat[$key] ?></td>
+                            <? endforeach; ?>
+                        </tr>
+                    <? endforeach; ?>
+                </tbody>
+            </table>
     <? endif; ?>
 
     <? if ($selected->graphic): ?>

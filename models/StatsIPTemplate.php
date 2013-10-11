@@ -73,10 +73,14 @@ class StatsIPTemplate extends SimpleORMap {
     }
 
     public function accumulateEntities($array) {
-        foreach ($array as $new) {
-            foreach ($new as $key => $value) {
+        foreach ($array as $new => $newval) {
+           foreach ($newval as $key => $value) {
                 if ($key != 'id') {
-                    $this->addEntity($new['id'], $key, $value);
+                    if ($newval['id']) {
+                    $this->addEntity($newval['id'], $key, $value);
+                    } else {
+                        $this->addEntity($new, $key, $value);
+                    }
                 }
             }
         }

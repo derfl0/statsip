@@ -203,3 +203,13 @@ input[type="checkbox"].studip_checkbox:checked + label {
 */
 
 
+/*
+* DATATABLE
+*/
+.datatable_hover {
+    background-color: #ccc;
+}
+
+.datatable_hover_indirect {
+    background-color: #dddddd;
+}

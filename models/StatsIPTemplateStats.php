@@ -19,18 +19,19 @@ class StatsIPTemplateStats extends SimpleORMap {
 
         // Get values
         $result = call_user_func_array(array($plugin, $stats->call), array($input));
-        
-        // Fill Dummies
-        $IDs = array_flip($input);
-        foreach ($result as $data) {
-            unset($IDs[$data['id']]);
-        }
-        
-        foreach ($IDs as $key => $val) {
-            $result[] = array('id' => $key, $stats->name => $stats->dummy);
-        }
-        
 
+        if ($stats->dummy != "") {
+
+            // Fill Dummies
+            $IDs = array_flip($input);
+            foreach ($result as $data) {
+                unset($IDs[$data['id']]);
+            }
+
+            foreach ($IDs as $key => $val) {
+                $result[] = array('id' => $key, $stats->name => $stats->dummy);
+            }
+        }
         return $result;
     }
 
